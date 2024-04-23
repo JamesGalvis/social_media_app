@@ -1,0 +1,128 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String @id @default(uuid())
+  externalUserId String @unique
+
+  name             String
+  username         String   @unique
+  imageUrl         String?
+  bio              String?
+  hasNotifications Boolean?
+
+  following     Follow[]       @relation("Following")
+  followedBy    Follow[]       @relation("FollowedBy")
+  posts         Post[]
+  likes         Like[]
+  comments      Comment[]
+  savedPosts    Saved[]
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Follow {
+  id          String @id @default(uuid())
+  followerId  String
+  followingId String
+
+  follower  User @relation(name: "Following", fields: [followerId], references: [externalUserId], onDelete: Cascade)
+  following User @relation(name: "FollowedBy", fields: [followingId], references: [externalUserId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model Post {
+  id       String  @id @default(uuid())
+  caption  String?
+  imageUrl String?
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [externalUserId], onDelete: Cascade)
+
+  likes      Like[]
+  comments   Comment[]
+  savedPosts Saved[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([authorId, id])
+  @@index([authorId])
+}
+
+model Like {
+  id String @id @default(uuid())
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [externalUserId], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Comment {
+  id       String  @id @default(uuid())
+  body     String?
+  imageUrl String?
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [externalUserId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Saved {
+  id String @id @default(uuid())
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [externalUserId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Notification {
+  id     String @id @default(uuid())
+  body   String
+  userId String
+
+  user User @relation(fields: [userId], references: [externalUserId], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
